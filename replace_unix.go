@@ -3,16 +3,18 @@
 package monkey
 
 import (
+	"fmt"
+	"os"
 	"syscall"
 )
 
 func mprotectCrossPage(addr uintptr, length int, prot int) {
 	pageSize := syscall.Getpagesize()
-	for p := pageStart(addr); p < addr + uintptr(length); p += uintptr(pageSize) {
+	for p := pageStart(addr); p < addr+uintptr(length); p += uintptr(pageSize) {
 		page := rawMemoryAccess(p, pageSize)
 		err := syscall.Mprotect(page, prot)
 		if err != nil {
-			panic(err)
+			fmt.Fprintf(os.Stderr, "change page access: %v", err)
 		}
 	}
 }
@@ -23,7 +25,7 @@ func mprotectCrossPage(addr uintptr, length int, prot int) {
 func copyToLocation(location uintptr, data []byte) {
 	f := rawMemoryAccess(location, len(data))
 
-	mprotectCrossPage(location, len(data), syscall.PROT_READ|syscall.PROT_WRITE|syscall.PROT_EXEC)
+	mprotectCrossPage(location, len(data), syscall.PROT_READ|syscall.PROT_WRITE)
 	copy(f, data[:])
 	mprotectCrossPage(location, len(data), syscall.PROT_READ|syscall.PROT_EXEC)
 }
